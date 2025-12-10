@@ -2,6 +2,7 @@ import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.metrics.Meter;
 import io.opentelemetry.api.metrics.ObservableDoubleGauge;
+import io.opentelemetry.proto.collector.metrics.v1.ExportMetricsServiceRequest;
 import io.opentelemetry.proto.common.v1.AnyValue;
 import io.opentelemetry.proto.common.v1.KeyValue;
 import io.opentelemetry.proto.metrics.v1.*;
@@ -15,19 +16,24 @@ import io.opentelemetry.sdk.metrics.data.PointData;
 import io.opentelemetry.sdk.metrics.export.MetricExporter;
 import io.opentelemetry.sdk.metrics.export.PeriodicMetricReader;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.lang.reflect.Field;
+import java.net.HttpURLConnection;
+import java.net.URI;
+import java.net.URL;
 import java.time.*;
 import java.util.Collection;
 import java.util.List;
 
 public class MonitorIndicatorProcessor {
 
-    public static void main() throws InterruptedException {
+    public static void main() throws InterruptedException, IOException {
         // 模拟已有指标数据
-        Instant instant = ZonedDateTime.of(2025, 12, 4, 13, 13, 13, 123000000,
+        Instant instant = ZonedDateTime.of(2025, 12, 9, 16, 16, 18, 123000000,
                 ZoneId.systemDefault()).toInstant(); // 纳秒
         long timestamp = instant.getEpochSecond() * 1_000_000_000L + instant.getNano();
-        long value = 1881;
+        long value = 3000;
 
         // 构造一个 DataPoint，带时间戳
         NumberDataPoint dataPoint = NumberDataPoint.newBuilder()
@@ -40,7 +46,7 @@ public class MonitorIndicatorProcessor {
 
         NumberDataPoint indexPoint = NumberDataPoint.newBuilder()
                 .setTimeUnixNano(timestamp)
-                .setAsDouble(123.456)
+                .setAsDouble(299.20)
                 .addAttributes(KeyValue.newBuilder()
                         .setKey("description")
                         .setValue(AnyValue.newBuilder().setStringValue("指数").build()).build())
@@ -84,12 +90,33 @@ public class MonitorIndicatorProcessor {
         // 序列化为 Protobuf 二进制
         byte[] otlpBytes = resourceMetrics.toByteArray();
         System.out.println("OTLP Metric 序列化成功，字节长度: " + otlpBytes.length);
-
         // 打印文本格式（调试用）
         System.out.println(resourceMetrics);
 
-        MonitorIndicatorProcessor processor = new MonitorIndicatorProcessor();
-        processor.processIndicator("CATE_1_11", "123456", "123.456");
+        // 包装成 ExportMetricsServiceRequest
+        ExportMetricsServiceRequest request = ExportMetricsServiceRequest.newBuilder()
+                .addResourceMetrics(resourceMetrics)
+                .build();
+
+        // 序列化为 Protobuf 二进制
+        byte[] data = request.toByteArray();
+
+        // POST 到 VictoriaMetrics
+        URL url = new URL("http://localhost:8428/opentelemetry/v1/metrics");
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setDoOutput(true);
+        conn.setRequestMethod("POST");
+        conn.setRequestProperty("Content-Type", "application/x-protobuf");
+
+        try (OutputStream os = conn.getOutputStream()) {
+            os.write(data);
+        }
+
+        int responseCode = conn.getResponseCode();
+        System.out.println("Response: " + responseCode);
+
+//        MonitorIndicatorProcessor processor = new MonitorIndicatorProcessor();
+//        processor.processIndicator("CATE_1_11", "123456", "123.456");
     }
 
      public void processIndicator(String instance, String indicatorCode, Object indicatorValue) throws InterruptedException {
