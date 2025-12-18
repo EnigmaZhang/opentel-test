@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.reflect.Field;
 import java.net.HttpURLConnection;
-import java.net.URI;
 import java.net.URL;
 import java.time.*;
 import java.util.Collection;
