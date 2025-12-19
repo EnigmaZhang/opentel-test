@@ -9,18 +9,58 @@ import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.Random;
 
 public class VMPressureTest {
 
     static void main() throws Exception {
-        VMPressureTest test = new VMPressureTest();
-        Instant startInstant = Instant.now();
-        for (int i = 0; i < 200; ++i) {
-            test.createMetrics(i * 1000, i * 10);
-        }
-        long timeSpent = Instant.now().toEpochMilli() - startInstant.toEpochMilli();
-        System.out.println("Time spent: " + timeSpent);
+        Thread t1 = new Thread(() -> {
+            try {
+                while(true) {
+                    VMPressureTest test = new VMPressureTest();
+                    Instant startInstant = Instant.now();
+                    for (int i = 0; i < 100; ++i) {
+                        test.createMetrics(i * 1000, i * 10);
+                    }
+                    long timeSpent = Instant.now().toEpochMilli() - startInstant.toEpochMilli();
+                    System.out.println("Time spent t1: " + timeSpent);
+                    System.out.println("Execute Time t1: " + LocalDateTime.now());
+                    if (timeSpent < 1000L) {
+                        Thread.sleep(1000L - 10L - timeSpent);
+                    }
+                }
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+
+        Thread t2 = new Thread(() -> {
+            try {
+                while(true) {
+
+                    VMPressureTest test = new VMPressureTest();
+                    Instant startInstant = Instant.now();
+                    for (int i = 100; i < 200; ++i) {
+                        test.createMetrics(i * 1000, i * 10);
+                    }
+                    long timeSpent = Instant.now().toEpochMilli() - startInstant.toEpochMilli();
+                    System.out.println("Time spent t2: " + timeSpent);
+                    System.out.println("Execute Time t2: " + LocalDateTime.now());
+                    if (timeSpent < 1000L) {
+                        Thread.sleep(1000L - 10L - timeSpent);
+                    }
+                }
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+        t1.start();
+        t2.start();
+
+        Thread.sleep(100000);
     }
 
     public void createMetrics(int batchCount, int resourceCount) throws Exception {
@@ -86,6 +126,7 @@ public class VMPressureTest {
                             .build())
                     .addScopeMetrics(scopeMetrics.build())
                     .build();
+            request.addResourceMetrics(resourceMetrics);
             resourceCount += 1;
         }
 
