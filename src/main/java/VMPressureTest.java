@@ -24,8 +24,10 @@ public class VMPressureTest {
                         test.createMetrics(i * 1000, i * 10);
                     }
                     long timeSpent = Instant.now().toEpochMilli() - startInstant.toEpochMilli();
-                    System.out.println("Time spent t1: " + timeSpent);
-                    System.out.println("Execute Time t1: " + LocalDateTime.now());
+                    if (timeSpent > 500) {
+                        System.out.println("Time spent t1: " + timeSpent);
+                        System.out.println("Execute Time t1: " + LocalDateTime.now());
+                    }
                     if (timeSpent < 1000L) {
                         Thread.sleep(1000L - 10L - timeSpent);
                     }
@@ -46,8 +48,10 @@ public class VMPressureTest {
                         test.createMetrics(i * 1000, i * 10);
                     }
                     long timeSpent = Instant.now().toEpochMilli() - startInstant.toEpochMilli();
-                    System.out.println("Time spent t2: " + timeSpent);
-                    System.out.println("Execute Time t2: " + LocalDateTime.now());
+                    if (timeSpent > 500) {
+                        System.out.println("Time spent t2: " + timeSpent);
+                        System.out.println("Execute Time t2: " + LocalDateTime.now());
+                    }
                     if (timeSpent < 1000L) {
                         Thread.sleep(1000L - 10L - timeSpent);
                     }
@@ -145,7 +149,9 @@ public class VMPressureTest {
         }
 
         int responseCode = conn.getResponseCode();
-        System.out.println("Response: " + responseCode);
+        if (responseCode != 200) {
+            System.out.println("Response: " + responseCode);
+        }
     }
 }
 
